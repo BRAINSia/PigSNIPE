@@ -1,0 +1,98 @@
+run_mode: train
+work_dir: ${hydra:runtime.cwd}
+debug: false
+model:
+  _target_: src.landmarks.model.HardParameterSharingModel
+  agents: ${environment.landmarks}
+  state_size: ${environment.state_size}
+  conv_filters:
+  - 32
+  - 32
+  - 64
+  - 64
+  conv_strides:
+  - 1
+  - 1
+  - 1
+  - 1
+  conv_kernels:
+  - 5
+  - 5
+  - 4
+  - 3
+  fc_layers:
+  - 512
+  - 256
+  - 128
+  - 6
+  norm: BATCH
+  use_norm: true
+  scale_result: 100
+  pooling: MAX
+  pooling_kernels:
+  - 2
+  - 2
+  - 2
+  - 2
+  pooling_strides:
+  - 1
+  - 1
+  - 1
+  - 1
+  activation: PRELU
+  activation_args:
+    num_parameters: 1
+  location_sharing: ${environment.extensions.location_sharing.use}
+  bias_init: 0.01
+  gpu:
+  input_channels: ${replay_buffer.history_length}
+experience_collector:
+  _target_: src.landmarks.experience_collector.ExperienceCollector
+  n_parallel_envs: 5
+  env_config: ${environment}
+environment:
+  _target_: src.landmarks.environment.MultiAgentLandmarkEnv
+  state_size:
+  - 35
+  - 35
+  - 35
+  landmarks:
+  - AC
+  - PC
+  - RP
+  max_steps: 300
+  clip_reward: 1
+  mode: ${run_mode}
+  image_tag: og
+  history_length: ${replay_buffer.history_length}
+  extensions:
+    stage: prim1
+    base_resolution:
+    - 1
+    transform_priors:
+      use: false
+      landmarks_to_transform: []
+    noisy_initialization:
+      use: true
+      offset: 5
+    priors_initialization:
+      use: false
+    multi_res:
+      use: false
+      resolutions:
+      - 1
+    location_sharing:
+      use: false
+      spherical: false
+      normalize: true
+replay_buffer:
+  _target_: src.replay_buffer.ReplayBuffer
+  capacity: 500000
+  history_length: 4
+  state_size: ${environment.state_size}
+  landmark_names: ${environment.landmarks}
+  loc_sharing: ${environment.extensions.location_sharing.use}
+device:
+  n_cpus: 72
+  n_gpus: 2
+HYDRA_FULL_ERROR: 1
