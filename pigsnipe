@@ -1,0 +1,488 @@
+#!/usr/bin/env python3
+import sys
+import argparse
+
+description = "author: Michal Brzus\nPigSNIPE - Version 0.9"
+
+# parse command line
+parser = argparse.ArgumentParser(description=description)
+parser.add_argument(
+    "-t1",
+    "--t1w_image",
+    metavar="file",
+    required=True,
+    help="Input image required for basic processing.",
+)
+parser.add_argument(
+    "-o", "--output_dir", metavar="directory", required=True, help="Output directory"
+)
+parser.add_argument(
+    "-t2",
+    "--t2w_image",
+    metavar="file",
+    help="T2w image required for additional features.",
+)
+parser.add_argument(
+    "-g", "--gpu", action="store", help="Specify GPU device. If non, use CPU."
+)
+parser.add_argument(
+    "--uid", action="store", help="Specify User ID for generated file ownership."
+)
+parser.add_argument(
+    "--gid", action="store", help="Specify Group ID for generated file ownership."
+)
+parser.add_argument(
+    "-a", "--acpc_align", action="store_true", help="Create AC-PC aligned data."
+)
+parser.add_argument(
+    "-k", "--keep_temp_files", action="store_true", help="Keep preliminary files."
+)
+parser.add_argument(
+    "--use_affine", action="store_true", help="Use Rigid+Affine during registration."
+)
+parser.add_argument(
+    "--no_landmarks", action="store_true", help="Do not compute landmarks."
+)
+parser.add_argument(
+    "-s", "--skull_strip", action="store_true", help="Skull Strip images."
+)
+
+if len(sys.argv) == 1:
+    parser.print_help()
+    exit(1)
+args = parser.parse_args()
+
+# import rest of needed libraries
+import os
+import shutil
+from src.segmentation.inference_functions import *
+from src.registration_functions import *
+from src.landmarks.landmarks_pipeline_functions import *
+from subprocess import run
+from pathlib import Path
+
+# configure GPU device
+if args.gpu:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    device = torch.device(f"cuda:{args.gpu}")
+    device_name = f"GPU: {args.gpu}"
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    device = torch.device("cpu")
+    device_name = "CPU"
+
+# configure model device
+print(f"\nModels to be run using: {device_name}")
+# setup ownership
+change_ownership = False
+uid, gid = None, None
+if args.uid and args.gid:
+    change_ownership = True
+    uid = int(args.uid)
+    gid = int(args.gid)
+
+
+# ensure output directory exists
+base_out_dir: Path = Path(args.output_dir)
+base_out_dir.mkdir(exist_ok=True, parents=True)
+if change_ownership:
+    shutil.chown(base_out_dir, uid, gid)
+
+print(f"Output directory set to: {base_out_dir}")
+
+# setup T1w image
+t1w_filepath: Path = Path(args.t1w_image)
+sub_ses = sub_ses_from_filename(t1w_filepath.as_posix())
+# create subject directory in the output dir
+out_dir: Path = base_out_dir / f"{sub_ses}"
+out_dir.mkdir(exist_ok=True)
+if change_ownership:
+    shutil.chown(out_dir, uid, gid)
+
+# setup output directories
+prelim_dir: Path = out_dir / "temp"
+results_dir: Path = out_dir / "Results"
+prelim_dir.mkdir(exist_ok=True)
+results_dir.mkdir(exist_ok=True)
+if change_ownership:
+    shutil.chown(prelim_dir, uid, gid)
+    shutil.chown(results_dir, uid, gid)
+
+# setup T1w image and copy it to the Results as it will not be changed
+t1w_basename: str = t1w_filepath.name
+shutil.copy(t1w_filepath, results_dir)
+if change_ownership:
+    shutil.chown(results_dir / t1w_basename, uid, gid)
+
+# compute Low-Resolution brainmask
+t1w_low_res_mask: Path = (
+    prelim_dir / f"{t1w_basename.replace('.nii.gz', 'LowResBrainmask.nii.gz')}"
+)
+t1w_cropped: Path = prelim_dir / f"{t1w_basename.replace('.nii.gz', 'Cropped.nii.gz')}"
+compute_low_res_brainmask(
+    t1w_filepath.as_posix(), t1w_cropped.as_posix(), t1w_low_res_mask.as_posix(), device
+)
+if change_ownership:
+    shutil.chown(t1w_low_res_mask, uid, gid)
+    shutil.chown(t1w_cropped, uid, gid)
+
+# compute High-Resolution brainmask
+t1w_high_res_mask: Path = (
+    prelim_dir / f"{t1w_basename.replace('.nii.gz', 'HighResBrainmask.nii.gz')}"
+)
+compute_high_res_brainmask(t1w_cropped.as_posix(), t1w_high_res_mask.as_posix(), device)
+if change_ownership:
+    shutil.chown(t1w_high_res_mask, uid, gid)
+
+if not args.no_landmarks:
+    centroid = get_centroid_from_brainmask(t1w_high_res_mask.as_posix())
+    # Generate cropped image
+    cropped_t1w_filename: Path = (
+        prelim_dir / f"{t1w_basename.replace('.nii.gz', 'cropped.nii.gz')}"
+    )
+    generate_cropped_image(
+        t1w_filepath.as_posix(),
+        t1w_high_res_mask.as_posix(),
+        cropped_t1w_filename.as_posix(),
+    )
+    if change_ownership:
+        shutil.chown(cropped_t1w_filename, uid, gid)
+    # Generate rough landmarks in original space
+    og1_lmk_filename: Path = prelim_dir / f"{sub_ses}_original_1_ACPCRP_landmarks.fcsv"
+    run_RL_model(
+        cropped_t1w_filename.as_posix(),
+        "prim1",
+        og1_lmk_filename.as_posix(),
+        centroid=centroid,
+        gpu=0,
+    )
+    if change_ownership:
+        shutil.chown(og1_lmk_filename, uid, gid)
+    # Generate landmarks in original space
+    og2_lmk_filename: Path = prelim_dir / f"{sub_ses}_original_2_ACPCRP_landmarks.fcsv"
+    run_RL_model(
+        cropped_t1w_filename.as_posix(),
+        "prim2",
+        og2_lmk_filename.as_posix(),
+        input_fcsv=og1_lmk_filename,
+        gpu=0,
+    )
+    if change_ownership:
+        shutil.chown(og2_lmk_filename, uid, gid)
+    # Generate ACPC transform, ACPC primary landmarks, and ACPC t1w
+    acpc_prim_lmk_filename: Path = prelim_dir / f"{sub_ses}_ACPCPrimaryLandmarks.fcsv"
+    acpc_transform_filename: Path = prelim_dir / f"{sub_ses}_ACPC_transform.h5"
+    cropped_t1w_ACPC_filename: Path = prelim_dir / f"{sub_ses}_T1wCroppedACPC.nii.gz"
+    create_ACPC_fcsv_and_transform(
+        og2_lmk_filename.as_posix(),
+        acpc_prim_lmk_filename.as_posix(),
+        acpc_transform_filename.as_posix(),
+    )
+    if change_ownership:
+        shutil.chown(acpc_prim_lmk_filename, uid, gid)
+        shutil.chown(acpc_transform_filename, uid, gid)
+    create_ACPC_t1w(
+        cropped_t1w_filename.as_posix(),
+        acpc_transform_filename.as_posix(),
+        cropped_t1w_ACPC_filename.as_posix(),
+    )
+    if change_ownership:
+        shutil.chown(cropped_t1w_ACPC_filename, uid, gid)
+    orig_t1w_ACPC_filename: Path = (
+        prelim_dir / f"{t1w_basename.replace('.nii.gz', 'ACPC.nii.gz')}"
+    )
+    create_ACPC_t1w(
+        t1w_filepath.as_posix(),
+        acpc_transform_filename.as_posix(),
+        orig_t1w_ACPC_filename.as_posix(),
+    )
+    if change_ownership:
+        shutil.chown(orig_t1w_ACPC_filename, uid, gid)
+    # Generate secondary landmarks
+    sec_lmk_filename: Path = prelim_dir / f"{sub_ses}_secondary_landmarks_ACPC.fcsv"
+    run_RL_model(
+        cropped_t1w_ACPC_filename.as_posix(),
+        "ACPCsec",
+        sec_lmk_filename.as_posix(),
+        input_fcsv=acpc_prim_lmk_filename,
+        gpu=0,
+    )
+    if change_ownership:
+        shutil.chown(sec_lmk_filename, uid, gid)
+    # Generate tertiary landmarks
+    ter_lmk_filename: Path = prelim_dir / f"{sub_ses}_tertiary_landmarks_ACPC.fcsv"
+    run_RL_model(
+        cropped_t1w_ACPC_filename.as_posix(),
+        "ACPCter",
+        ter_lmk_filename.as_posix(),
+        input_fcsv=acpc_prim_lmk_filename.as_posix(),
+        gpu=0,
+    )
+    if change_ownership:
+        shutil.chown(ter_lmk_filename, uid, gid)
+    # merge landmarks
+    sec_ter_lmk_filename: Path = prelim_dir / f"{sub_ses}_landmarks_sec_ter_ACPC.fcsv"
+    merge_landmarks(
+        sec_lmk_filename.as_posix(),
+        ter_lmk_filename.as_posix(),
+        sec_ter_lmk_filename.as_posix(),
+    )
+    if change_ownership:
+        shutil.chown(sec_ter_lmk_filename, uid, gid)
+    acpc_lmk_filename: Path = prelim_dir / f"{sub_ses}_landmarksACPC.fcsv"
+    merge_landmarks(
+        acpc_prim_lmk_filename.as_posix(),
+        sec_ter_lmk_filename.as_posix(),
+        acpc_lmk_filename.as_posix(),
+    )
+    if change_ownership:
+        shutil.chown(acpc_lmk_filename, uid, gid)
+    # transform the lmk back to original space
+    orig_lmk_filename: Path = results_dir / f"{sub_ses}_landmarks.fcsv"
+    transform_landmarks_to_og(
+        acpc_lmk_filename.as_posix(),
+        acpc_transform_filename.as_posix(),
+        orig_lmk_filename.as_posix(),
+    )
+    if change_ownership:
+        shutil.chown(orig_lmk_filename, uid, gid)
+
+if args.t2w_image:
+    # compute Low-Resolution brainmask
+    t2w_filepath: Path = Path(args.t2w_image)
+    t2w_basename: str = t2w_filepath.name
+    t2w_low_res_mask: Path = (
+        prelim_dir / f"{t2w_basename.replace('.nii.gz', 'LowResBrainmask.nii.gz')}"
+    )
+    t2w_cropped: Path = (
+        prelim_dir / f"{t2w_basename.replace('.nii.gz', 'Cropped.nii.gz')}"
+    )
+    compute_low_res_brainmask(
+        t2w_filepath.as_posix(),
+        t2w_cropped.as_posix(),
+        t2w_low_res_mask.as_posix(),
+        device,
+    )
+    if change_ownership:
+        shutil.chown(t2w_low_res_mask, uid, gid)
+        shutil.chown(t2w_cropped, uid, gid)
+
+    # compute High-Resolution brainmask
+    t2w_high_res_mask: Path = (
+        prelim_dir / f"{t2w_basename.replace('.nii.gz', 'HighResBrainmask.nii.gz')}"
+    )
+    compute_high_res_brainmask(
+        t2w_cropped.as_posix(), t2w_high_res_mask.as_posix(), device
+    )
+    if change_ownership:
+        shutil.chown(t2w_high_res_mask, uid, gid)
+
+    # Register images
+    t2_to_t1_transform: Path = results_dir / "T2w_TO_T1w_transform.h5"
+    t2w_reg: Path = (
+        results_dir / f"{t2w_basename.replace('.nii.gz', 'Registered.nii.gz')}"
+    )
+    if args.use_affine:
+        registration_command = call_BRAINSFIT(
+            t1w_filepath.as_posix(),
+            t2w_filepath.as_posix(),
+            t2_to_t1_transform.as_posix(),
+            t1w_high_res_mask.as_posix(),
+            t2w_high_res_mask.as_posix(),
+        )
+        resample_command = call_BRAINSResample(
+            t2w_filepath.as_posix(),
+            t2w_reg.as_posix(),
+            t2_to_t1_transform.as_posix(),
+            ref_vol=t1w_filepath.as_posix(),
+        )
+    else:
+        registration_command = call_BRAINSFITRigid(
+            t1w_filepath.as_posix(),
+            t2w_filepath.as_posix(),
+            t2_to_t1_transform.as_posix(),
+            t1w_high_res_mask.as_posix(),
+            t2w_high_res_mask.as_posix(),
+        )
+        resample_command = call_BRAINSResampleInPlace(
+            t2w_filepath.as_posix(),
+            t2w_reg.as_posix(),
+            t2_to_t1_transform.as_posix(),
+            ref_vol=t1w_filepath.as_posix(),
+        )
+    run(registration_command.split(" "), check=True)
+    run(resample_command.split(" "), check=True)
+    if change_ownership:
+        shutil.chown(t2_to_t1_transform, uid, gid)
+        shutil.chown(t2w_reg, uid, gid)
+
+    # compute Intra-Cranial Volume mask
+    icv_mask: Path = (
+        results_dir / f"{t1w_basename.replace('.nii.gz', 'ICVmask.nii.gz')}"
+    )
+    icv_data = {
+        "t1w": t1w_filepath.as_posix(),
+        "t2w": t2w_reg.as_posix(),
+        "label": t1w_high_res_mask.as_posix(),
+    }
+    compute_icv_mask(icv_data, icv_mask.as_posix(), device)
+    if change_ownership:
+        shutil.chown(icv_mask, uid, gid)
+
+    # compute Gray Matter - White Matter - CSF segmentation mask
+    gwc_mask: Path = (
+        results_dir / f"{t1w_basename.replace('.nii.gz', 'GWCmask.nii.gz')}"
+    )
+    gwc_data = {
+        "t1w": t1w_filepath.as_posix(),
+        "t2w": t2w_reg.as_posix(),
+        "icv_mask": icv_mask.as_posix(),
+    }
+    compute_gwc_mask(gwc_data, gwc_mask.as_posix(), device)
+    if change_ownership:
+        shutil.chown(gwc_mask, uid, gid)
+
+    # compute Left & Right Caudate and Putamen segmentation mask
+    seg_mask: Path = (
+        results_dir / f"{t1w_basename.replace('.nii.gz', 'Segmentationmask.nii.gz')}"
+    )
+    compute_seg_mask(gwc_data, seg_mask.as_posix(), device)
+    if change_ownership:
+        shutil.chown(seg_mask, uid, gid)
+
+if args.acpc_align:
+    assert (
+        not args.no_landmarks
+    ), "Landmarks Computation is required to ACPC align data. Add '-l' flag."
+    acpc_dir: Path = out_dir / "ResultsACPC"
+    acpc_dir.mkdir(exist_ok=True)
+    if change_ownership:
+        shutil.chown(acpc_dir, uid, gid)
+
+    # move already created data from temp to ResultsACPC directory
+    shutil.move(acpc_lmk_filename.as_posix(), acpc_dir)
+    shutil.move(acpc_transform_filename.as_posix(), acpc_dir)
+    shutil.move(orig_t1w_ACPC_filename.as_posix(), acpc_dir)
+    if change_ownership:
+        shutil.chown(acpc_dir / acpc_lmk_filename.name, uid, gid)
+        shutil.chown(acpc_dir / acpc_transform_filename.name, uid, gid)
+        shutil.chown(acpc_dir / orig_t1w_ACPC_filename.name, uid, gid)
+
+    if args.t2w_image:
+        # Resample results from T1w image space to ACPC space
+        t1w_acpc_path: Path = Path(
+            orig_t1w_ACPC_filename.as_posix().replace(
+                prelim_dir.as_posix(), acpc_dir.as_posix()
+            )
+        )
+        acpc_transform: Path = acpc_dir / f"{sub_ses}_ACPC_transform.h5"
+        icv_mask_acpc: Path = (
+            acpc_dir / f"{t1w_basename.replace('.nii.gz', 'ICVmaskACPC.nii.gz')}"
+        )
+        gwc_mask_acpc: Path = (
+            acpc_dir / f"{t1w_basename.replace('.nii.gz', 'GWCmaskACPC.nii.gz')}"
+        )
+        seg_mask_acpc: Path = (
+            acpc_dir
+            / f"{t1w_basename.replace('.nii.gz', 'SegmentationmaskACPC.nii.gz')}"
+        )
+        run(
+            call_BRAINSResampleMask(
+                icv_mask.as_posix(),
+                icv_mask_acpc.as_posix(),
+                acpc_transform.as_posix(),
+                ref_vol=t1w_acpc_path.as_posix(),
+            ).split(" "),
+            check=True,
+        )
+        if change_ownership:
+            shutil.chown(icv_mask_acpc, uid, gid)
+        run(
+            call_BRAINSResampleMask(
+                gwc_mask.as_posix(),
+                gwc_mask_acpc.as_posix(),
+                acpc_transform.as_posix(),
+                ref_vol=t1w_acpc_path.as_posix(),
+            ).split(" "),
+            check=True,
+        )
+        if change_ownership:
+            shutil.chown(gwc_mask_acpc, uid, gid)
+        run(
+            call_BRAINSResampleMask(
+                seg_mask.as_posix(),
+                seg_mask_acpc.as_posix(),
+                acpc_transform.as_posix(),
+                ref_vol=t1w_acpc_path.as_posix(),
+            ).split(" "),
+            check=True,
+        )
+        if change_ownership:
+            shutil.chown(seg_mask_acpc, uid, gid)
+
+        # create composite transform for T2w image resampling
+        t2w_acpc: Path = acpc_dir / f"{t2w_basename.replace('.nii.gz', 'ACPC.nii.gz')}"
+        if args.use_affine:
+            comp_t = combine_transforms(
+                [t2_to_t1_transform.as_posix(), acpc_transform.as_posix()]
+            )
+            resample_from_comp(
+                t2w_filepath.as_posix(),
+                comp_t,
+                t2w_acpc.as_posix(),
+                t1w_acpc_path.as_posix(),
+                pixel_type=itk.F,
+            )
+        else:
+            run(
+                call_BRAINSResampleMask(
+                    t2w_reg.as_posix(),
+                    t2w_acpc.as_posix(),
+                    acpc_transform.as_posix(),
+                    ref_vol=t1w_acpc_path.as_posix(),
+                ).split(" "),
+                check=True,
+            )
+            if change_ownership:
+                shutil.chown(t2w_acpc, uid, gid)
+    if args.skull_strip:
+        t1w_stripped_acpc: Path = Path(
+            t1w_acpc_path.as_posix().replace(".nii", "SkullStripped.nii")
+        )
+        skull_strip(
+            t1w_acpc_path.as_posix(),
+            icv_mask_acpc.as_posix(),
+            t1w_stripped_acpc.as_posix(),
+        )
+        if change_ownership:
+            shutil.chown(t1w_stripped_acpc, uid, gid)
+        t2w_stripped_acpc: Path = Path(
+            t2w_acpc.as_posix().replace(".nii", "SkullStripped.nii")
+        )
+        skull_strip(
+            t2w_acpc.as_posix(), icv_mask_acpc.as_posix(), t2w_stripped_acpc.as_posix()
+        )
+        if change_ownership:
+            shutil.chown(t2w_stripped_acpc, uid, gid)
+
+if args.skull_strip:
+    t1w_stripped: Path = (
+        results_dir / f"{t1w_basename.replace('.nii', 'SkullStripped.nii')}"
+    )
+    if args.t2w_image:
+        skull_strip(
+            t1w_filepath.as_posix(), icv_mask.as_posix(), t1w_stripped.as_posix()
+        )
+        t2w_stripped: Path = Path(
+            t2w_reg.as_posix().replace(".nii", "SkullStripped.nii")
+        )
+        skull_strip(t2w_reg.as_posix(), icv_mask.as_posix(), t2w_stripped.as_posix())
+        if change_ownership:
+            shutil.chown(t2w_stripped, uid, gid)
+    else:
+        skull_strip(t1w_filepath, t1w_high_res_mask, t1w_stripped)
+    if change_ownership:
+        shutil.chown(t1w_stripped, uid, gid)
+# remove temp directory unless user wants to keep it
+if not args.keep_temp_files:
+    run(["rm", "-r", prelim_dir], check=True)
