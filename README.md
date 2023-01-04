@@ -47,8 +47,8 @@ For detailed information we refer you to the [PigSNIPE paper]().
 
 ## Authors
 
-Michal Brzus
+[Michal Brzus](https://github.com/mbrzus) - Ph.D. student at the University of Iowa
 
-Hans Johnson, Ph.D
+[Hans Johnson, Ph.D](https://github.com/hjmjohnson) - [Professor](https://engineering.uiowa.edu/people/hans-johnson) at the University of Iowa, Electrical and Computer Engineering department.
 
 for contact, email: hans-johnson@uiowa.edu
