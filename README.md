@@ -11,7 +11,7 @@ PigSNIPE is a software package for analysis of Minipig brain Magnetic Resonance 
 
 PigSNIPE provides a fully automatic pipeline that allows for image registration, AC-PC alignment, brain mask segmentation, skull stripping, tissue segmentation, caudate-putamen brain segmentation, and landmark detection.
 
-For detailed information we refer you to the [PigSNIPE paper]().
+For detailed information we refer you to the [PigSNIPE paper](https://www.preprints.org/manuscript/202301.0313/v1).
 
 ## Setup
 
