@@ -4,7 +4,7 @@ FROM ubuntu:20.04
 # LABEL about the custom image
 LABEL maintainer="michal-brzus@uiowa.edu"
 LABEL version="0.1"
-LABEL description="This is custom Docker Image for Minipig"
+LABEL description="This is custom Docker Image for Minipig Image Processing"
 
 # Disable Prompt During Packages Installation
 ARG DEBIAN_FRONTEND=noninteractive
@@ -29,10 +29,12 @@ COPY DL_MODEL_PARAMS/primary_lmk_1mm_model.pt      /opt/src/landmarks/RL_Params/
 COPY DL_MODEL_PARAMS/secondary_lmk_model.pt        /opt/src/landmarks/RL_Params/sec/model.pt
 COPY DL_MODEL_PARAMS/tertiary_lmk_model.pt         /opt/src/landmarks/RL_Params/ter/model.pt
 
-ENV PATH $PATH:/opt/BRAINSToolsBinaries
-ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/opt/BRAINSToolsBinaries
 COPY BRAINSToolsBinaries /opt/BRAINSToolsBinaries
 COPY REQUIREMENTS.txt /temp/REQUIREMENTS.txt
+
+ENV PATH $PATH:/opt/BRAINSToolsBinaries
+ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/opt/BRAINSToolsBinaries
+
 RUN pip install -U pip \
         && pip install -r /temp/REQUIREMENTS.txt --no-cache-dir \
         && rm /temp/REQUIREMENTS.txt
