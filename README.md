@@ -25,26 +25,32 @@ For detailed information we refer you to the [PigSNIPE paper](https://www.mdpi.c
 
      NOTE: to optimize the build for your machine hardware, use 'NATIVE' mode in ccmake setup.
 
-4. Setting Up Binaries and Libraries.
+3. Setting Up Binaries and Libraries.
 
      To set up binaries and libraries needed to utilize this repository, run the following script inside the PigSNIPE repository.
    
      `$ python3 setup.py -b <path_to_BRAINSTools_build>`
 
-5. Download the [zip file](https://iowa.sharepoint.com/:u:/r/sites/SINAPSELAB/Shared%20Documents/PigSNIPE/DL_MODEL_PARAMS.zip?csf=1&web=1&e=8y0BX4) containing model weights. 
+4. Download the [zip file](https://iowa.sharepoint.com/:u:/r/sites/SINAPSELAB/Shared%20Documents/PigSNIPE/DL_MODEL_PARAMS.zip?csf=1&web=1&e=8y0BX4) containing model weights. 
   
     Note: The Link Will be available shortly. If you wish to use the tool sooner email hans-johnson@uiowa.edu or michal-brzus@uiowa.edu.
 
-6. Unzip the DL_MODEL_PARAMS directory in the cloned repo.
+5. Unzip the DL_MODEL_PARAMS directory in the cloned repo.
 
     `$ unzip <path_to_zip_file> -d <path_to_repo> `
 
-7. Create a virtual environment and install required packages.
+6. Create a virtual environment and install required packages.
    
     `$ python3 -m venv <path_to_virtual_env>`
    
     `$ pip install -r <path_to_REQUIREMENTS.txt>`
 
+7. Run the software
+
+    Run the following to see the help message for further instruction:
+  
+    `python3 <path_to_pigsnipe> --help`
+   
 ## Authors
 
 [Michal Brzus](https://github.com/mbrzus) - Ph.D. student at the University of Iowa
