@@ -29,7 +29,7 @@ For detailed information we refer you to the [PigSNIPE paper](https://www.mdpi.c
 
      To set up binaries and libraries needed to utilize this repository, run the following script inside the PigSNIPE repository.
    
-     `$ python3 setup.py -b <path_to_BRAINSTools_build>`
+     `$ python3 setup.py -b <path_to_BRAINSTools_build_dir>`
 
 4. Download the [zip file](https://iowa.sharepoint.com/:u:/r/sites/SINAPSELAB/Shared%20Documents/PigSNIPE/DL_MODEL_PARAMS.zip?csf=1&web=1&e=8y0BX4) containing model weights. 
   
@@ -42,15 +42,22 @@ For detailed information we refer you to the [PigSNIPE paper](https://www.mdpi.c
 6. Create a virtual environment and install required packages.
    
     `$ python3 -m venv <path_to_virtual_env>`
+        
+    `$ source <path_to_virtual_env>/bin/activate`
    
     `$ pip install -r <path_to_REQUIREMENTS.txt>`
 
-7. Run the software
+7. Run PigSNIPE pipeline
 
-    Run the following to see the help message for further instruction:
-  
-    `python3 <path_to_pigsnipe> --help`
+    `$ python3 pigsnipe`
+
+    You should the help message for the script.
    
+    The example command to run the pipeline is:
+   
+    `$ python3 pigsnipe -t1 <path_to_T1w> -t2 <path_to_T2w> -o <path_to_result_directory> --keep_temp_files`
+
+
 ## Authors
 
 [Michal Brzus](https://github.com/mbrzus) - Ph.D. student at the University of Iowa
