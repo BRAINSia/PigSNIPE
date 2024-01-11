@@ -37,7 +37,7 @@ def call_BRAINSFIT(
     fixed_image, moving_image, transform, fixed_mask=None, moving_mask=None
 ):
     command = (
-        f"BRAINSFit --fixedVolume {fixed_image} --fixedBinaryVolume {fixed_mask} "
+        f"BRAINSToolsBinaries/BRAINSFit --fixedVolume {fixed_image} --fixedBinaryVolume {fixed_mask} "
         f"--movingVolume {moving_image} --movingBinaryVolume {moving_mask} --samplingPercentage 0.2 "
         f"--linearTransform {transform} --initializeTransformMode useCenterOfROIAlign --useRigid --useAffine "
         f"--maskProcessingMode ROI  --medianFilterSize 1,1,1 "
@@ -51,7 +51,7 @@ def call_BRAINSFITRigid(
     fixed_image, moving_image, transform, fixed_mask=None, moving_mask=None
 ):
     command = (
-        f"BRAINSFit --fixedVolume {fixed_image} --fixedBinaryVolume {fixed_mask} "
+        f"BRAINSToolsBinaries/BRAINSFit --fixedVolume {fixed_image} --fixedBinaryVolume {fixed_mask} "
         f"--movingVolume {moving_image} --movingBinaryVolume {moving_mask} --samplingPercentage 0.2 "
         f"--linearTransform {transform} --initializeTransformMode useCenterOfROIAlign --useRigid "
         f"--maskProcessingMode ROI  --medianFilterSize 1,1,1 "
@@ -64,7 +64,7 @@ def call_BRAINSFITRigid(
 def call_BRAINSResample(
     inputim: str, outputim: str, transform: str, ref_vol: str = None
 ) -> str:
-    command = f"BRAINSResample --inputVolume {inputim}  --outputVolume {outputim} --pixelType float --warpTransform {transform} "
+    command = f"BRAINSToolsBinaries/BRAINSResample --inputVolume {inputim}  --outputVolume {outputim} --pixelType float --warpTransform {transform} "
     if ref_vol is not None:
         command = f"{command} --referenceVolume {ref_vol}"
     return command
@@ -74,7 +74,7 @@ def call_BRAINSResampleInPlace(
     inputim: str, outputim: str, transform: str, ref_vol: str = None
 ) -> str:
     command = (
-        f"BRAINSResample --inputVolume {inputim}  --outputVolume {outputim} --pixelType float "
+        f"BRAINSToolsBinaries/BRAINSResample --inputVolume {inputim}  --outputVolume {outputim} --pixelType float "
         f"--warpTransform {transform} --interpolationMode ResampleInPlace"
     )
     if ref_vol is not None:
@@ -86,7 +86,7 @@ def call_BRAINSResampleMask(
     inputim: str, outputim: str, transform: str, ref_vol: str = None
 ) -> str:
     command = (
-        f"BRAINSResample --inputVolume {inputim}  --outputVolume {outputim} --pixelType float "
+        f"BRAINSToolsBinaries/BRAINSResample --inputVolume {inputim}  --outputVolume {outputim} --pixelType float "
         f"--warpTransform {transform} --interpolationMode NearestNeighbor "
     )
     if ref_vol is not None:

@@ -42,7 +42,7 @@ def create_ACPC_fcsv_and_transform(
     fcsv_filename, output_fcsv_filename, output_transform_filename
 ):
     command = (
-        f"landmarksConstellationAligner "
+        f"BRAINSToolsBinaries/landmarksConstellationAligner "
         f"--inputLandmarksPaired {fcsv_filename} "
         f"--outputLandmarksPaired {output_fcsv_filename} "
         f"--outputTransform {output_transform_filename} "
@@ -52,7 +52,7 @@ def create_ACPC_fcsv_and_transform(
 
 def create_ACPC_t1w(t1w_input_filename, transform_filename, t1w_output_filename):
     command = (
-        f"BRAINSResample "
+        f"BRAINSToolsBinaries/BRAINSResample "
         f"--inputVolume {t1w_input_filename} "
         f"--outputVolume {t1w_output_filename} "
         f"--warpTransform {transform_filename} "
@@ -89,7 +89,7 @@ def get_centroid_from_brainmask(brainmask):
 
 def transform_landmarks_to_og(input_lmk, transform, out_path):
     command = (
-        f"BRAINSConstellationLandmarksTransform "
+        f"BRAINSToolsBinaries/BRAINSConstellationLandmarksTransform "
         f"-i {input_lmk} -o {out_path} -t {transform}"
     )
     run(command.split(" "), check=True)
@@ -106,10 +106,11 @@ def run_RL_model(
         "ACPCter",
     ], "<stage> must be one of ['prim1', 'prim2', 'ACPCsec', 'ACPCter']"
     param_dir: str = (Path(__file__).parent.resolve() / "RL_Params").as_posix()
+    model_dir: str = (Path(__file__).parent.parent.parent.resolve() / "DL_MODEL_PARAMS").as_posix()
     if stage == "prim1":
         assert centroid is not None, "stage prim1 requires brainmask file"
         config_path = f"{param_dir}/prim_1mm/config.yaml"
-        model_path = f"{param_dir}/prim_1mm/model.pt"
+        model_path = f"{model_dir}/primary_lmk_1mm_model.pt"
         inference_on_one(
             config=config_path,
             model=model_path,
@@ -123,13 +124,13 @@ def run_RL_model(
     else:
         if stage == "prim2":
             config_path = f"{param_dir}/prim_05mm/config.yaml"
-            model_path = f"{param_dir}/prim_05mm/model.pt"
+            model_path = f"{model_dir}/primary_lmk_05mm_model.pt"
         elif stage == "ACPCsec":
             config_path = f"{param_dir}/sec/config.yaml"
-            model_path = f"{param_dir}/sec/model.pt"
+            model_path = f"{model_dir}/secondary_lmk_model.pt"
         elif stage == "ACPCter":
             config_path = f"{param_dir}/ter/config.yaml"
-            model_path = f"{param_dir}/ter/model.pt"
+            model_path = f"{model_dir}/tertiary_lmk_model.pt"
 
         inference_on_one(
             config=config_path,

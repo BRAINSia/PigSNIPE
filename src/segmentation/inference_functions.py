@@ -10,7 +10,8 @@ from monai.transforms import (
     FillHolesd,
 )
 
-ckpt_dir_path: str = (Path(__file__).parent.resolve() / "model_Params").as_posix()
+ckpt_dir_path: str = (Path(__file__).parent.parent.parent.resolve() / "DL_MODEL_PARAMS").as_posix()
+print(ckpt_dir_path)
 
 
 def compute_low_res_brainmask(
