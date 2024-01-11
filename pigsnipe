@@ -60,6 +60,12 @@ from src.registration_functions import *
 from src.landmarks.landmarks_pipeline_functions import *
 from subprocess import run
 from pathlib import Path
+import itk
+import torch
+
+
+base_dir: Path = Path(__file__).parent.resolve()
+os.environ["LD_LIBRARY_PATH"] = f"{os.environ['LD_LIBRARY_PATH']}:{base_dir}/BRAINSToolsBinaries"
 
 # configure GPU device
 if args.gpu:
