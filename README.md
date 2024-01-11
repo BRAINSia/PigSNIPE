@@ -18,32 +18,32 @@ For detailed information we refer you to the [PigSNIPE paper](https://www.mdpi.c
 1. Clone this git repository.
 
     `$ git clone https://github.com/BRAINSia/PigSNIPE.git`
+    
+2. Build BRAINSTools
 
-2. Download the [zip file](https://iowa.sharepoint.com/:u:/r/sites/SINAPSELAB/Shared%20Documents/PigSNIPE/DL_MODEL_PARAMS.zip?csf=1&web=1&e=8y0BX4) containing model weights. 
+     Refer to the [BRAINSTools](https://github.com/BRAINSia/BRAINSTools) GitHub repository for specific build instructions.
+
+     NOTE: to optimize the build for your machine hardware, use 'NATIVE' mode in ccmake setup.
+
+4. Setting Up Binaries and Libraries.
+
+     To set up binaries and libraries needed to utilize this repository, run the following script inside the PigSNIPE repository.
+   
+     `$ python3 setup.py -b <path_to_BRAINSTools_build>`
+
+5. Download the [zip file](https://iowa.sharepoint.com/:u:/r/sites/SINAPSELAB/Shared%20Documents/PigSNIPE/DL_MODEL_PARAMS.zip?csf=1&web=1&e=8y0BX4) containing model weights. 
   
     Note: The Link Will be available shortly. If you wish to use the tool sooner email hans-johnson@uiowa.edu or michal-brzus@uiowa.edu.
 
-3. Unzip the DL_MODEL_PARAMS directory in the cloned repo.
+6. Unzip the DL_MODEL_PARAMS directory in the cloned repo.
 
     `$ unzip <path_to_zip_file> -d <path_to_repo> `
 
-4. Go to the repo directory and build a docker image.
-
-    `$ docker build --tag pigsnipe:v0.9 --label pigsnipe --file $(pwd)/Dockerfile $(pwd)`
-
-5. Run docker image.
-
-    `$ docker run pigsnipe:v0,9`
+7. Create a virtual environment and install required packages.
    
-   You should be seeing the script help message.
+    `$ python3 -m venv <path_to_virtual_env>`
    
-   Example command for using the script would be:
-   
-    `$ docker run --mount type=bind,source=<data_dir>,target=/tmp/mydata pigsnipe:v0.9 -t1 /tmp/mydata/sub-001_ses-001_T1w.nii.gz -t2 /tmp/mydata/sub-001_ses-002_T2w.nii.gz -o /tmp/mydata/results`
-    
-    Note: The results would be placed in `<data_dir>/results`
-    
-    Note: The tool expect the data to be compatible with [BIDS format](https://bids.neuroimaging.io/). 
+    `$ pip install -r <path_to_REQUIREMENTS.txt>`
 
 ## Authors
 
