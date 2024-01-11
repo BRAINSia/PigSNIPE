@@ -2,7 +2,7 @@
 import sys
 import argparse
 
-description = "author: Michal Brzus\nPigSNIPE - Version 0.9"
+description = "author: Michal Brzus\nPigSNIPE - Version 1.0"
 
 # parse command line
 parser = argparse.ArgumentParser(description=description)
