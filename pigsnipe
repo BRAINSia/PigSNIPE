@@ -65,7 +65,10 @@ import torch
 
 
 base_dir: Path = Path(__file__).parent.resolve()
-os.environ["LD_LIBRARY_PATH"] = f"{os.environ['LD_LIBRARY_PATH']}:{base_dir}/BRAINSToolsBinaries"
+if "LD_LIBRARY_PATH" in os.environ:
+    os.environ["LD_LIBRARY_PATH"] = f"{os.environ['LD_LIBRARY_PATH']}:{base_dir}/BRAINSToolsBinaries"
+else:
+    os.environ["LD_LIBRARY_PATH"] = f"{base_dir}/BRAINSToolsBinaries"
 
 # configure GPU device
 if args.gpu:
