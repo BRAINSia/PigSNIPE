@@ -15,45 +15,51 @@ For detailed information we refer you to the [PigSNIPE paper](https://www.mdpi.c
 
 ## Setup
 
-1. Clone this git repository.
+1. #### Clone this git repository.
 
     `$ git clone https://github.com/BRAINSia/PigSNIPE.git`
+
+2. #### Create a virtual environment and install required packages.
+   
+    `$ python3 -m venv <path_to_virtual_env>`
+        
+    `$ source <path_to_virtual_env>/bin/activate`
+
+    `$ cd <path_to_repo>`   
+
+    `$ pip install -r requirements.txt`
     
-2. Build BRAINSTools
+3. #### Build BRAINSTools
 
-     Refer to the [BRAINSTools](https://github.com/BRAINSia/BRAINSTools) GitHub repository for specific build instructions.
+     Refer to the [BRAINSTools](https://github.com/BRAINSia/BRAINSTools) GitHub repository for specific build instructions ("Building" section).
 
-     NOTE: to optimize the build for your machine hardware, use 'NATIVE' mode in ccmake setup.
+     NOTES:
+   - to optimize the build for your machine hardware, use 'NATIVE' mode in ccmake setup
+      `BRAINSToools_CXX_OPTIMIZATION_    -mtune=native -march=native`
+      `BRAINSToools_C_OPTIMIZATION_FL    -mtune=native -march=native`
+   - We advise to build BRAINSTools as default. However it is a large package. For lightweight build, set the following to 'ON' and the rest to 'OFF':
+     - USE_BRAINSFit
+     - USE_BRAINSResample
+     - USE_BRAINSConstellationDetector
 
-3. Setting Up Binaries and Libraries.
+4. #### Setting Up Binaries and Libraries.
 
      To set up binaries and libraries needed to utilize this repository, run the following script inside the PigSNIPE repository.
    
      `$ python3 setup.py -b <path_to_BRAINSTools_build_dir>`
 
-4. Download the [zip file](https://iowa.sharepoint.com/:u:/r/sites/SINAPSELAB/Shared%20Documents/PigSNIPE/DL_MODEL_PARAMS.zip?csf=1&web=1&e=8y0BX4) containing model weights. 
+5. #### Download the [zip file](https://iowa.sharepoint.com/:u:/r/sites/SINAPSELAB/Shared%20Documents/PigSNIPE/DL_MODEL_PARAMS.zip?csf=1&web=1&e=8y0BX4) containing model weights. 
   
     Note: The Link Will be available shortly. If you wish to use the tool sooner email hans-johnson@uiowa.edu or michal-brzus@uiowa.edu.
 
-5. Unzip the DL_MODEL_PARAMS directory in the cloned repo.
+6. #### Unzip the DL_MODEL_PARAMS.zip directory in the cloned repo.
 
     `$ unzip <path_to_zip_file> -d <path_to_repo> `
 
-6. Create a virtual environment and install required packages.
-   
-    `$ python3 -m venv <path_to_virtual_env>`
-        
-    `$ source <path_to_virtual_env>/bin/activate`
-   
-    `$ pip install -r <path_to_REQUIREMENTS.txt>`
+7. #### Run PigSNIPE pipeline
+    `$ python3 pigsnipe` -> You should the help message for the script.
 
-7. Run PigSNIPE pipeline
-
-    `$ python3 pigsnipe`
-
-    You should the help message for the script.
-   
-    The example command to run the pipeline is:
+   The example command to run the pipeline is:
    
     `$ python3 pigsnipe -t1 <path_to_T1w> -t2 <path_to_T2w> -o <path_to_result_directory> --keep_temp_files`
 
