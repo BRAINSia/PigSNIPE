@@ -48,7 +48,7 @@ For detailed information we refer you to the [PigSNIPE paper](https://www.mdpi.c
    
      `$ python3 setup.py -b <path_to_BRAINSTools_build_dir>`
 
-5. #### Download the [zip file](https://iowa.sharepoint.com/:u:/r/sites/SINAPSELAB/Shared%20Documents/PigSNIPE/DL_MODEL_PARAMS.zip?csf=1&web=1&e=8y0BX4) containing model weights. 
+5. #### Download the [zip file](https://drive.google.com/file/d/1c0oakEvyXmv-BmtT51MRZWR9LC4oGKqs/view?usp=sharing) containing model weights. 
   
     Note: The Link Will be available shortly. If you wish to use the tool sooner email hans-johnson@uiowa.edu or michal-brzus@uiowa.edu.
 
