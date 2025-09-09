@@ -47,7 +47,7 @@ scipy==1.9.3
 six==1.16.0
 tensorboardX==2.5.1
 tifffile==2022.10.10
-torch==1.13.0
+torch==2.8.0
 torchmetrics==0.11.0
 tqdm==4.64.1
 typing-extensions==4.4.0
